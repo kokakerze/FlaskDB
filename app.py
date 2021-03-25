@@ -2,13 +2,12 @@ import sqlite3
 
 from flask import Flask, jsonify, request, redirect, url_for, render_template
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
 from faker import Faker
 
 
 fake = Faker()
 
-DATABASE = "users.db"
+# DATABASE = "users.db"
 # connection = sqlite3.connect(DATABASE)
 # cursor = connection.cursor()
 # cursor.execute(
@@ -20,8 +19,8 @@ DATABASE = "users.db"
 #     )
 #     """
 # )
-
-
+#
+#
 # def db_con():
 #     cn = None
 #     try:
@@ -29,7 +28,7 @@ DATABASE = "users.db"
 #     except Exception as e:
 #         print(e)
 #     return cn
-#
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -58,10 +57,11 @@ def home():
 
 @app.route("/users/all")
 def users_all():
-    cur = db.session.execute("select * from users")
+
+    all = User.query.all()
     users = [
-        dict(id=row[0], name=row[1], email=row[2])
-        for row in cur.fetchall()
+       dict(id=user.id, name=user.name, email=user.email)
+        for user in all
     ]
     return jsonify(users)
 
@@ -83,13 +83,12 @@ def users_del_all():
 
 @app.route("/users/count")
 def users_count():
-    cur = db.session.execute("select count(1) as cnt from users")
-    row = cur.fetchone()
+    row=User.query.count()
     db.session.flush()
     db.session.commit()
     if row is None:
         return ValueError("Could not count users")
-    return jsonify({"count": row[0]})
+    return jsonify({"count": row})
 
 
 
