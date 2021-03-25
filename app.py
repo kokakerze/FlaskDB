@@ -2,6 +2,7 @@ import sqlite3
 
 from flask import Flask, jsonify, request, redirect, url_for, render_template
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 from faker import Faker
 
 
@@ -21,14 +22,14 @@ DATABASE = "users.db"
 # )
 
 
-def db_con():
-    cn = None
-    try:
-        cn = sqlite3.connect(DATABASE)
-    except Exception as e:
-        print(e)
-    return cn
-
+# def db_con():
+#     cn = None
+#     try:
+#         cn = sqlite3.connect(DATABASE)
+#     except Exception as e:
+#         print(e)
+#     return cn
+#
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -57,8 +58,7 @@ def home():
 
 @app.route("/users/all")
 def users_all():
-    cn = db_con()
-    cur = cn.execute("select * from users")
+    cur = db.session.execute("select * from users")
     users = [
         dict(id=row[0], name=row[1], email=row[2])
         for row in cur.fetchall()
@@ -76,32 +76,37 @@ def users_gen():
 
 @app.route("/users/delete-all")
 def users_del_all():
-    conn = db_con()
-    conn.execute("delete from users")
-    conn.commit()
+    db.session.query(User).delete()
+    db.session.commit()
     return redirect(url_for('users_all'))
 
 
 @app.route("/users/count")
 def users_count():
-    conn = db_con()
-    cur = conn.execute("select count(1) as cnt from users")
+    cur = db.session.execute("select count(1) as cnt from users")
     row = cur.fetchone()
+    db.session.flush()
+    db.session.commit()
     if row is None:
         return ValueError("Could not count users")
     return jsonify({"count": row[0]})
 
 
+
+
+
 @app.route("/users/add", methods=['GET', 'POST'])
 def users_add():
-    cn = db_con()
     if request.method == "GET":
         return render_template("user_add.html")
     else:
-        name = request.form["user_name"]
-        email = request.form["email"]
-    sql = """insert into users (name, email) values (?, ?)"""
-    cn.cursor().execute(sql, (name, email))
-    cn.commit()
+        try:
+            u = User(name=request.form["user_name"], email=request.form["email"])
+            db.session.add(u)
+            db.session.flush()
+            db.session.commit()
+        except:
+            db.session.rollback()
+            print("Ошибка добавления в БД")
     return redirect(url_for('users_all'))
 
