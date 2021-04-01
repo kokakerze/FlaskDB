@@ -1,8 +1,7 @@
-import sqlite3
-
-from flask import Flask, jsonify, request, redirect, url_for, render_template
-from flask_sqlalchemy import SQLAlchemy
+"""Flask project that works with DATABASE."""
 from faker import Faker
+from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask_sqlalchemy import SQLAlchemy
 
 
 fake = Faker()
@@ -38,44 +37,50 @@ db = SQLAlchemy(app)
 
 
 class User(db.Model):
+    """This class creates DATABASE of Users with fields id,name,email."""
+
     __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
+    idt = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
 
     def __init__(self, *args, **kwargs):
+        """Init global variables in this class."""
         super(User, self).__init__(*args, **kwargs)
 
     def __repr__(self):
+        """Given a format of printing."""
         return '<User %r>' % self.name
 
 
 @app.route("/")
 def home():
+    """Home page."""
     return "Welcome Home!"
 
 
 @app.route("/users/all")
 def users_all():
-
-    all = User.query.all()
+    """Thows all users."""
+    result = User.query.all()
     users = [
-       dict(id=user.id, name=user.name, email=user.email)
-        for user in all
+        dict(id=user.idt, name=user.name, email=user.email) for user in result
     ]
     return jsonify(users)
 
 
 @app.route("/users/gen")
 def users_gen():
+    """Generate one fake user."""
     usr = User(name=fake.name(), email=fake.email())
     db.session.add(usr)
     db.session.commit()
-    return redirect(url_for('users_all'))
+    return redirect(url_for("users_all"))
 
 
 @app.route("/users/delete-all")
 def users_del_all():
+    """Delete all users."""
     db.session.query(User).delete()
     db.session.commit()
     return redirect(url_for('users_all'))
@@ -83,7 +88,8 @@ def users_del_all():
 
 @app.route("/users/count")
 def users_count():
-    row=User.query.count()
+    """Count how many users in DATABASE."""
+    row = User.query.count()
     db.session.flush()
     db.session.commit()
     if row is None:
@@ -91,21 +97,19 @@ def users_count():
     return jsonify({"count": row})
 
 
-
-
-
 @app.route("/users/add", methods=['GET', 'POST'])
 def users_add():
+    """Register a new user."""
     if request.method == "GET":
         return render_template("user_add.html")
     else:
         try:
-            u = User(name=request.form["user_name"], email=request.form["email"])
+            u = User(name=request.form["user_name"],
+                     email=request.form["email"])
             db.session.add(u)
             db.session.flush()
             db.session.commit()
-        except:
+        except Exception:
             db.session.rollback()
             print("Ошибка добавления в БД")
     return redirect(url_for('users_all'))
-
