@@ -6,3 +6,5 @@ run:
 #    @cat $< | grep "##" | sort | sed -n 's/^## /- /p'
 #
 #.DEFAULT_GOAL :=help
+lint:
+	flake8 .
